@@ -1,0 +1,39 @@
+import gym
+import pickle
+import tensorflow as tf
+
+from baselines import deepq
+from baselines.common import models
+
+
+def callback(lcl, _glb):
+    # stop training if reward exceeds 199
+    is_solved = lcl['t'] > 100 and sum(lcl['episode_rewards'][-101:-1]) / 100 >= 199
+    return is_solved
+
+
+
+
+if __name__ == '__main__':
+    env = gym.make("CartPole-v0")
+    act = deepq.learn(
+        env,
+        network=models.mlp(num_hidden=64, num_layers=2, activation=tf.nn.relu),
+        lr=1e-3,
+        total_timesteps=15000,
+        buffer_size=100,
+        batch_size=32,
+        exploration_fraction=0.3,
+        exploration_final_eps=0.02,
+        print_freq=10,
+        gamma=0.95,
+        train_freq=1,
+        prioritized_replay=False,
+        target_network_update_freq=1,
+        learning_starts=1,
+        param_noise=False,
+        dueling=False,
+        checkpoint_freq=None
+    )
+
+# with mse loss and exploration decay as a function of episode
