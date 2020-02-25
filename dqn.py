@@ -2,7 +2,7 @@ import random
 import numpy as np
 import os
 from collections import deque
-from keras.models import Sequential
+from keras.models import Sequential, clone_model
 from keras.layers import Dense
 from keras.optimizers import Adam
 from keras.initializers import Orthogonal, Zeros
@@ -50,6 +50,9 @@ class DQNSolver:
                 bias_initializer=Zeros()))
         self.model.add(Dense(self.action_space, activation="linear"))
         self.model.compile(loss="mse", optimizer=Adam(lr=LEARNING_RATE))
+        if USE_TARGET_NETWORK:
+            self.target_model = clone_model(self.model)
+            self.target_model.set_weights(self.model.get_weights())
 
     def remember(self, state, action, reward, next_state, done):
         self.memory.append((state, action, reward, next_state, done))
@@ -75,7 +78,10 @@ class DQNSolver:
             reward_np[i] = (batch[i][2])
             done_np[i] = (batch[i][4])
         q_t = self.model.predict(state_np)
-        q_t1 = self.model.predict(state_next_np)
+        if USE_TARGET_NETWORK:
+            q_t1 = self.target_model.predict(state_next_np)
+        else:
+            q_t1 = self.model.predict(state_next_np)
         q_t1_best = np.max(q_t1, axis=1)
         for i in range(BATCH_SIZE):
             q_t[i,int(action_np[i])] = reward_np[i] + GAMMA*(1-done_np[i])*q_t1_best[i]
@@ -99,6 +105,9 @@ class DQNSolver:
     def eps_episode_decay(self, episode_num):
         fraction = min (float(episode_num)/EXPLORATION_END_EPISODE, 1.0)
         self.exploration_rate = EXPLORATION_MAX + fraction * (EXPLORATION_MIN - EXPLORATION_MAX)
+
+    def update_target_network(self):
+        self.target_model.set_weights(self.model.get_weights())
 
 
 def dqn_algorithm(trail_no, verbose=True):
@@ -147,6 +156,8 @@ def dqn_algorithm(trail_no, verbose=True):
                 np.savetxt(file_name, np.transpose(output_table), delimiter=',', header='Exploration %,Episodes,Rewards,Timestep')
                 return
             dqn_solver.experience_replay()
+            if USE_TARGET_NETWORK and t%TARGET_UPDATE_FREQUENCY==0:
+                dqn_solver.update_target_network()
             if terminal or t_record >= STOP_EPISODE_AT_T:
                 episode_rewards.append(0.0)
                 break
@@ -183,6 +194,9 @@ if __name__ == "__main__":
     parser.add_argument('--n_trial_runs',  type=int, default=20, help='no of trials to run ')
     parser.add_argument('--mlp_layers', nargs='+', type=int, default=[64, 64], help='list of neurons in each hodden layer of the DQN network')
     parser.add_argument('--mlp_activations', nargs='+', default=['relu', 'relu'], help='list of activation functions in each hodden layer of the DQN network')
+    parser.add_argument("--use_target_network", type=str2bool, default=False,  help="boolean to use target neural network in DQN")
+    parser.add_argument('--target_update_frequency',  type=int, default=1, help='timesteps frequency to do weight update from online network to target network')
+
     
 
     args = parser.parse_args()
@@ -213,6 +227,9 @@ if __name__ == "__main__":
 
 
     N_TRIAL_RUNS = args.n_trial_runs
+
+    USE_TARGET_NETWORK = args.use_target_network
+    TARGET_UPDATE_FREQUENCY = args.target_update_frequency
 
     # time_array = np.empty(N_TRIAL_RUNS)
     # for i in trange(N_TRIAL_RUNS):
