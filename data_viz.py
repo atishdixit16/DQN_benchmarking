@@ -1,7 +1,17 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-version = "mountain_car_results"
+ENV = 'CartPole-v0'
+CASE_1_TITLE = 'with target network'
+CASE_2_TITLE = 'withour target network'
+
+CASE_1_PATH = 'with_target_results/'
+CASE_2_PATH = 'without_target_results/'
+CASE_1_CSV_INITIALS = 'expt'
+CASE_2_CSV_INITIALS = 'expt'
+
+file_path_1 = CASE_1_PATH + CASE_1_CSV_INITIALS
+file_path_2 = CASE_2_PATH + CASE_2_CSV_INITIALS
 
 openAI_list = []
 in_house_list = []
@@ -10,8 +20,8 @@ n_expmt = 15
 
 for i in range(n_expmt):
     # in_house_list.append(np.load('in_house_code_results/'+str(version)+'/expt'+str(i)+'.npy'))
-    in_house_list.append(np.loadtxt('in_house_code_results/'+str(version)+'/expt'+str(i)+'.csv', delimiter=',', skiprows=1))
-    openAI_list.append(np.loadtxt('Open_AI_expmt_results/'+str(version)+'/progress'+str(i)+'.csv', delimiter=',', skiprows=1))
+    in_house_list.append(np.loadtxt(file_path_1+str(i)+'.csv', delimiter=',', skiprows=1))
+    openAI_list.append(np.loadtxt(file_path_2+str(i)+'.csv', delimiter=',', skiprows=1))
 
 # find minimum episode experiment
 min_epsd = 10000

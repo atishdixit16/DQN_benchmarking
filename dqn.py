@@ -178,7 +178,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--output_folder', default='results/', help='output filepath')
     parser.add_argument('--env_name', default='CartPole-v0', help='string for a gym environment')
-    parser.add_argument('--total_timesteps', type=int, default=5000, help='Total number of timesteps')
+    parser.add_argument('--total_timesteps', type=int, default=10000, help='Total number of timesteps')
     parser.add_argument('--gamma', type=float, default=0.95, help='discount factor')
     parser.add_argument('--learning_rate',  type=float, default=1e-3, help='learning rate for the neural network')
     parser.add_argument('--buffer_size',  type=int, default=100, help='Replay buffer size')
@@ -231,11 +231,11 @@ if __name__ == "__main__":
     USE_TARGET_NETWORK = args.use_target_network
     TARGET_UPDATE_FREQUENCY = args.target_update_frequency
 
-    # time_array = np.empty(N_TRIAL_RUNS)
-    # for i in trange(N_TRIAL_RUNS):
-    #     t0 = time.time()
-    #     dqn_algorithm(i, verbose=False)
-    #     time_array[i] = time.time() - t0
-    # np.savetxt('time_taken.csv', time_array, delimiter=',')
+    time_array = np.empty(N_TRIAL_RUNS)
+    for i in trange(N_TRIAL_RUNS):
+        t0 = time.time()
+        dqn_algorithm(i, verbose=False)
+        time_array[i] = time.time() - t0
+    np.savetxt(str(FILE_PATH)+'time_taken.csv', time_array, delimiter=',')
 
-    dqn_algorithm(100, verbose=True)
+    # dqn_algorithm(100, verbose=True)
