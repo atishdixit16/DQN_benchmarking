@@ -114,15 +114,20 @@ class DQNSolver:
 
 def dqn_algorithm(trail_no, verbose=True):
 
-    # for carpole environemnt
-    env = gym.make(ENV_NAME) 
-    observation_space = env.observation_space.shape[0]
-    action_space = env.action_space.n
+    t_start = time.time()
 
     # for reservoir simulation environemnt
-    # env = resSimEnv(5)
-    # observation_space = env.observation_space.n
-    # action_space = env.action_space.n
+    if ENV_NAME=='ResSim-v0':
+        env = resSimEnv(5)
+        observation_space = env.observation_space.n
+        action_space = env.action_space.n
+    else:
+        env = gym.make(ENV_NAME) 
+        observation_space = env.observation_space.shape[0]
+        action_space = env.action_space.n
+
+
+    t_act, t_step, t_exp_rply, t_upd_ntwrk, t_log = 0,0,0,0,0
 
     dqn_solver = DQNSolver(observation_space, action_space, MLP_LAYERS, MLP_ACTIVATIONS)
     t = 0
@@ -140,15 +145,20 @@ def dqn_algorithm(trail_no, verbose=True):
                 dqn_solver.eps_episode_decay(len(episode_rewards))
             if EXPLORE_DECAY_BY_TIMESTEP:
                 dqn_solver.eps_timestep_decay(t)
-
+            t0 = time.time()
             action = dqn_solver.act(state)
+            t1 = time.time()
             state_next, reward, terminal, _ = env.step(action)
+            t2 = time.time()
+            t_act += t1 - t0
+            t_step += t2 - t1
             # reward = reward if not terminal else -reward
             state_next = np.reshape(state_next, [1, observation_space])
             dqn_solver.remember(state, action, reward, state_next, terminal)
             state = state_next
             episode_rewards[-1] += reward
             num_episodes = len(episode_rewards)
+            t0 = time.time()
             if (terminal or t_record >= STOP_EPISODE_AT_T) and num_episodes%PRINT_FREQ==0:
                 explore_percent.append(dqn_solver.exploration_rate*100)
                 episodes.append(len(episode_rewards))
@@ -156,17 +166,23 @@ def dqn_algorithm(trail_no, verbose=True):
                 steps.append(t)
                 if verbose:
                     print('Exploration %: '+str(int(dqn_solver.exploration_rate*100))+' ,Episodes: '+str(len(episode_rewards))+' ,Mean_100_reward: '+str(round(np.mean(episode_rewards[-101:-1]), 1))+' ,timestep: '+str(t))
-
+            t_log += time.time() - t0
             if t>TOTAL_TIMESTEPS:
                 output_table = np.stack((explore_percent, episodes, mean100_rew, steps))
                 if not os.path.exists(FILE_PATH):
                     os.makedirs(FILE_PATH)
                 file_name = str(FILE_PATH)+'expt'+str(trail_no)+'.csv'
                 np.savetxt(file_name, np.transpose(output_table), delimiter=',', header='Exploration %,Episodes,Rewards,Timestep')
+                if RECORD_TIME:
+                    np.savetxt(FILE_PATH+'time_trial'+str(trail_no)+'.csv', np.array([t_act, t_step, t_exp_rply, t_upd_ntwrk, t_log, time.time()-t_start]).reshape(1,6), delimiter=',', header='T_act, T_step, T_expr_rply, T_updt_ntwrk, T_log, T_total')
                 return
+            t0 = time.time()
             dqn_solver.experience_replay()
+            t_exp_rply += time.time() - t0
             if USE_TARGET_NETWORK and t%TARGET_UPDATE_FREQUENCY==0:
+                t0 = time.time()
                 dqn_solver.update_target_network()
+                t_upd_ntwrk += time.time()-t0
             if terminal or t_record >= STOP_EPISODE_AT_T:
                 episode_rewards.append(0.0)
                 break
@@ -232,17 +248,16 @@ if __name__ == "__main__":
     MLP_LAYERS = args.mlp_layers
     MLP_ACTIVATIONS = args.mlp_activations
 
-
     N_TRIAL_RUNS = args.n_trial_runs
 
     USE_TARGET_NETWORK = args.use_target_network
     TARGET_UPDATE_FREQUENCY = args.target_update_frequency
 
-    # time_array = np.empty(N_TRIAL_RUNS)
-    # for i in trange(N_TRIAL_RUNS):
-    #     t0 = time.time()
-    #     dqn_algorithm(i, verbose=False)
-    #     time_array[i] = time.time() - t0
-    # np.savetxt(str(FILE_PATH)+'time_taken.csv', time_array, delimiter=',')
+    RECORD_TIME = False
+    ENV_NAME = 'ResSim-v0'
+    TOTAL_TIMESTEPS = 2500
+    STOP_EPISODE_AT_T = 20
 
+    # for i in trange(N_TRIAL_RUNS):
+    #     dqn_algorithm(i, verbose=False)
     dqn_algorithm(100, verbose=True)
