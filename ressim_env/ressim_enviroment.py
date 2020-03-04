@@ -2,19 +2,17 @@
 
 import numpy as np
 import functools
-import matplotlib.pyplot as plt
-import csv
-
-from gym import spaces
 
 import ressim_env.ressim as ressim
 import ressim_env.utils as utils
+from gym import spaces
 
+import matplotlib.pyplot as plt
+import csv
 
 # parameters
 
 class resSimEnv:
-
     def __init__(self,
                 action_steps,
                 patm = 1.0,
@@ -28,37 +26,41 @@ class resSimEnv:
                 s_oir = 0.2,
                 k = np.ones((50,50)),
                 dt = 5e-4,
-                n_steps = 60):
-
+                n_steps = 1):
+    # def __init__(self, action_steps):
         np.random.seed(43)  # for reproducibility
 
         self.patm = patm
-        self.nx, self.ny = nx, ny
-        self.lx, self.ly = lx, ly
-        self.mu_w, self.mu_o = mu_w, mu_w  # viscosities
-        self.s_wir, self.s_oir = s_wir, s_oir  # irreducible saturations
-        self.dt = dt  # timestep
-        self.n_steps = n_steps
-
+        self.nx = nx
+        self.ny = ny
+        self.lx = lx
+        self.ly = ly
         self.grid = ressim.Grid(nx=self.nx, ny=self.ny, lx=self.lx, ly=self.ly)  # unit square, 64x64 grid
-        self.k = np.ones(self.grid.shape) #uniform permeability
-
-        # initial flow rates
+        self.k = k #uniform permeability
         self.q = np.zeros(self.grid.shape)
         self.Q_SCALE = 1.0
-        self.q[ 0, 0]=-0.5 # producer 1 
-        self.q[-1, 0]=-0.5 # producer 2
-        self.q[ 0,-1]=0.5 # injector 1
-        self.q[-1,-1]=0.5 # injector 2
+        self.q[0,0]=-0.5 # producer 1 
+        self.q[-1,0]=-0.5 # producer 2
+        self.q[0,-1]=0.5 # injector 1
+        self.q[-1,-1]=0.5
+  # injector 2
+
         self.q *= self.Q_SCALE
+
+
+        self.mu_w, self.mu_o = mu_w, mu_o  # viscosities
+        self.s_wir, self.s_oir = s_wir, s_oir  # irreducible saturations
 
         self.phi = np.ones(self.grid.shape)*0.1  # uniform porosity
         self.s_init = np.ones(self.grid.shape) * self.s_wir  # initial water saturation equals s_wir
         self.s_load = self.s_init
+        self.dt = dt  # timestep
+        self.n_steps = n_steps
 
         # RL parameters
         self.observation_space = spaces.Discrete(8)
         self.action_space = spaces.Discrete(int(action_steps**2)) # should be a perfect square number
+        self.q_delta = 0.2
 
         # Model definition
 
@@ -107,11 +109,46 @@ class resSimEnv:
 
         self.q *= self.Q_SCALE
 
+        # # action space is high (H), low (L) and same (S) for producer 1 and injector 1 (in total, 9 combinations - HL, LH, HS, SH, SL, LS, HH, LL, SS)
+        # # producer 2 and injector 2 valuse are functions of priducer1 and injector 2, respectively
+
+        # if action == 0: #HL
+        #     self.q[0, 0] += self.q_delta # producer 1
+        #     self.q[0,-1] -= self.q_delta # injector 1
+        # if action == 1: #LH
+        #     self.q[0, 0] -= self.q_delta # producer 1
+        #     self.q[0,-1] += self.q_delta # injector 1
+        # if action == 2: #HS
+        #     self.q[0, 0] += self.q_delta # producer 1
+        #     # self.q[0,-1] -= self.q_delta # injector 1
+        # if action == 3: #SH
+        #     # self.q[0, 0] -= self.q_delta # producer 1
+        #     self.q[0,-1] += self.q_delta # injector 1
+        # if action == 4: #SL
+        #     # self.q[0, 0] += self.q_delta # producer 1
+        #     self.q[0,-1] -= self.q_delta # injector 1
+        # if action == 5: #LS
+        #     self.q[0, 0] -= self.q_delta # producer 1
+        #     # self.q[0,-1] += self.q_delta # injector 1
+        # if action == 6: #HH
+        #     self.q[0, 0] += self.q_delta # producer 1
+        #     self.q[0,-1] += self.q_delta # injector 1
+        # if action == 7: #LL
+        #     self.q[0, 0] -= self.q_delta # producer 1
+        #     self.q[0,-1] -= self.q_delta # injector 1
+        # if action != 8: #SS
+        #     # limiting producer 1 and injector 1 flow betweeen 0 to 1
+        #     self.q[0,0] =  np.min ( ( np.max((self.q[0,0], -1.0)) , 0.0 ) )
+        #     self.q[0,-1] =  np.min ( ( np.max((self.q[0,-1], 0.0)) , 1.0 ) )
+        #     self.q[-1,0] = -1.0 - self.q[0,0] # since q[0,0] + q[-1,0] = -1
+        #     self.q[-1,-1] = 1.0 - self.q[0,-1] # since q[0,-1] + q[-1,-1] = 1
+
+
         # solve pressure
 
         self.solverP = ressim.PressureEquation(self.grid, q=self.q, k=self.k, lamb_fn=self.lamb_fn)
         self.solverS = ressim.SaturationEquation(self.grid, q=self.q, phi=self.phi, s=self.s_load, f_fn=self.f_fn, df_fn=self.df_fn)
-
+        
         for _ in range(self.n_steps):
             self.solverP.s = self.s_load
             self.solverP.step()
@@ -120,8 +157,8 @@ class resSimEnv:
             self.solverS.v = self.solverP.v
             self.solverS.step(self.dt)
 
-        self.s_load = self.solverS.s
-        self.p_load = self.solverP.p
+            self.s_load = self.solverS.s
+            self.p_load = self.solverP.p
 
         # reward is designed according to problem statement (objective of the optimization)
         # For example,

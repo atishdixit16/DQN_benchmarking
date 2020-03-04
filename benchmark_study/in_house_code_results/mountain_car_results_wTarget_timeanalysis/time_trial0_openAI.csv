@@ -4,3 +4,16 @@
 ,,,,,,,
 # T_bld_fnc, T_act, T_step, T_expr_rply, T_updt_ntwrk, T_log,T_extra, T_total
 0,51.0447995662689,9.75284099578857,1242.11195468903,213.756186246872,0.096026659011841,3.94400405883789,1520.70581221581
+,,,,,,,
+,,,,,,,
+,,,,,,,
+,Computation time (mins),,Computation time (% of total),,,,
+,Open AI DQN ,DQN_vanilla,Open AI DQN ,DQN_vanilla,,,
+T_bld_fnc,1,0,0,0,,,
+ T_act,845,51,21,3,DQN vanilla does not roll policy network at every timestep,,
+ T_step,15,10,0,1,,,
+ T_expr_rply,"3,089","1,242",75,82,Extra one hot and weight multiplication in OpenAI (not sure!),,
+ T_updt_ntwrk,138,214,3,14,,,
+ T_log,0,0,0,0,,,
+T_extra,24,4,1,0,,,
+ T_total,"4,112","1,521",100,100,,,

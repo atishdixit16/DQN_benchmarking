@@ -118,7 +118,7 @@ def dqn_algorithm(trail_no, verbose=True):
 
     # for reservoir simulation environemnt
     if ENV_NAME=='ResSim-v0':
-        env = resSimEnv(5)
+        env = resSimEnv(5, n_steps=50)
         observation_space = env.observation_space.n
         action_space = env.action_space.n
     else:
@@ -253,10 +253,11 @@ if __name__ == "__main__":
     USE_TARGET_NETWORK = args.use_target_network
     TARGET_UPDATE_FREQUENCY = args.target_update_frequency
 
-    RECORD_TIME = False
+    RECORD_TIME = True
     ENV_NAME = 'ResSim-v0'
-    TOTAL_TIMESTEPS = 2500
-    STOP_EPISODE_AT_T = 20
+    TOTAL_TIMESTEPS = 100
+    STOP_EPISODE_AT_T = 10
+    PRINT_FREQ = 1
 
     # for i in trange(N_TRIAL_RUNS):
     #     dqn_algorithm(i, verbose=False)
