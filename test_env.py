@@ -1,5 +1,6 @@
 import numpy as np
 from ressim_env.ressim_enviroment import resSimEnv
+import gym
 
 def gitter(w):
     stencil = [-5,+5,-1,+1, 0]
@@ -10,6 +11,8 @@ def gitter(w):
 
 # test case for evaluating cumulative reward for each action
 env = resSimEnv(5)
+env = gym.make("MountainCar-v0")
+
 cumRewards = []
 for i in range(1):
     state = env.reset()

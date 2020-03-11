@@ -255,9 +255,12 @@ if __name__ == "__main__":
 
     RECORD_TIME = True
     ENV_NAME = 'ResSim-v0'
-    TOTAL_TIMESTEPS = 100
-    STOP_EPISODE_AT_T = 10
-    PRINT_FREQ = 1
+    TOTAL_TIMESTEPS = 100000
+    MEMORY_SIZE = 500
+    STOP_EPISODE_AT_T = 20
+    PRINT_FREQ = 10
+    EXPLORATION_END_EPISODE = 300
+    MLP_ACTIVATIONS = ['relu', 'relu']
 
     # for i in trange(N_TRIAL_RUNS):
     #     dqn_algorithm(i, verbose=False)

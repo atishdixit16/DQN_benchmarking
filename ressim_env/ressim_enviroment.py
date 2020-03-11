@@ -163,10 +163,10 @@ class resSimEnv:
         # reward is designed according to problem statement (objective of the optimization)
         # For example,
         # The task, here, is to maximize the total production 
-        reward =  -self.q[0,0] * (1 - self.s_load[0,0]) + -self.q[-1,0] * ( 1 - self.s_load[-1,0] )
+        reward = float( -self.q[0,0] * (1 - self.s_load[0,0]) + -self.q[-1,0] * ( 1 - self.s_load[-1,0] ) )
 
         # done is always zero since this is a continous task
-        done = 0
+        done = False
 
         # states are represented by values of sturation and pressure at producers and injectors
         state = np.array( [ self.s_load[-1,-1], self.s_load[0,-1],self.s_load[-1,0],self.s_load[0,0], self.p_load[-1,-1], self.p_load[0,-1],self.p_load[-1,0],self.p_load[0,0] ] )
